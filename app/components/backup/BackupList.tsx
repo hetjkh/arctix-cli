@@ -77,6 +77,9 @@ const BackupList = () => {
     const [restoreMode, setRestoreMode] = useState<"merge" | "replace">("merge");
     const [showRestoreDialog, setShowRestoreDialog] = useState(false);
     const [downloadingPdfZip, setDownloadingPdfZip] = useState(false);
+    const [showProgressDialog, setShowProgressDialog] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [progressMessage, setProgressMessage] = useState("Preparing to generate PDFs...");
 
     useEffect(() => {
         fetchBackups();
@@ -275,23 +278,73 @@ const BackupList = () => {
 
     const handleDownloadAllPdfs = async () => {
         setDownloadingPdfZip(true);
+        setShowProgressDialog(true);
+        setProgress(0);
+        setProgressMessage("Preparing to generate PDFs...");
+
+        // Start progress simulation
+        const progressInterval = setInterval(() => {
+            setProgress((prev) => {
+                if (prev >= 90) return prev; // Don't go above 90% until download starts
+                return prev + Math.random() * 10; // Increment by random amount
+            });
+        }, 500);
+
         try {
+            // First, get the count of invoices to estimate time
+            const countResponse = await fetch("/api/invoice/list");
+            let totalInvoices = 0;
+            if (countResponse.ok) {
+                const countData = await countResponse.json();
+                totalInvoices = countData.invoices?.length || 0;
+                setProgressMessage(`Found ${totalInvoices} invoices. Generating PDFs...`);
+            }
+
+            // Update progress message during generation
+            const messageInterval = setInterval(() => {
+                setProgressMessage((prev) => {
+                    if (prev.includes("Generating PDFs")) {
+                        return "Generating PDFs... This may take a while.";
+                    }
+                    if (prev.includes("Creating ZIP")) {
+                        return "Creating ZIP file...";
+                    }
+                    return "Processing invoices...";
+                });
+            }, 3000);
+
             const response = await fetch("/api/backup/pdf-zip");
             
+            clearInterval(messageInterval);
+
             if (response.ok) {
+                setProgress(95);
+                setProgressMessage("Finalizing ZIP file...");
+                
                 const blob = await response.blob();
+                
+                setProgress(100);
+                setProgressMessage("Download starting...");
+                
+                // Small delay to show 100% completion
+                await new Promise((resolve) => setTimeout(resolve, 300));
+                
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
                 a.download = `invoices-${new Date().toISOString().slice(0, 10)}.zip`;
                 a.click();
                 window.URL.revokeObjectURL(url);
+                
+                setShowProgressDialog(false);
+                setProgress(0);
                 toast({
                     title: "Success",
                     description: "All invoice PDFs downloaded as ZIP file",
                 });
             } else {
                 const error = await response.json();
+                setShowProgressDialog(false);
                 toast({
                     variant: "destructive",
                     title: "Error",
@@ -300,13 +353,16 @@ const BackupList = () => {
             }
         } catch (error) {
             console.error("Error downloading PDF zip:", error);
+            setShowProgressDialog(false);
             toast({
                 variant: "destructive",
                 title: "Error",
                 description: "Failed to download invoice PDFs",
             });
         } finally {
+            clearInterval(progressInterval);
             setDownloadingPdfZip(false);
+            setProgress(0);
         }
     };
 
@@ -509,6 +565,42 @@ const BackupList = () => {
                             Restore Backup
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Progress Dialog */}
+            <Dialog open={showProgressDialog} onOpenChange={(open) => {
+                if (!downloadingPdfZip) {
+                    setShowProgressDialog(open);
+                }
+            }}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>Generating PDFs</DialogTitle>
+                        <DialogDescription>
+                            {progressMessage}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        {/* Progress Bar */}
+                        <div className="w-full">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm font-medium">Progress</span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    {Math.round(progress)}%
+                                </span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+                                <div
+                                    className="h-full bg-blue-600 dark:bg-blue-500 rounded-full transition-all duration-300 ease-out"
+                                    style={{ width: `${Math.min(progress, 100)}%` }}
+                                />
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
+                            Please wait while we generate all invoice PDFs. This may take several minutes depending on the number of invoices.
+                        </p>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>
