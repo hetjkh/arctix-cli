@@ -1,0 +1,272 @@
+// Types
+import { SignatureColor, SignatureFont } from "@/types";
+
+/**
+ * Environment
+ */
+export const ENV = process.env.NODE_ENV;
+
+/**
+ * Websites
+ */
+export const BASE_URL = "https://invoify.vercel.app";
+export const AUTHOR_WEBSITE = "https://aliabb.vercel.app";
+export const AUTHOR_GITHUB = "https://github.com/al1abb";
+
+/**
+ * API endpoints
+ */
+export const GENERATE_PDF_API = "/api/invoice/generate";
+export const SEND_PDF_API = "/api/invoice/send";
+export const EXPORT_INVOICE_API = "/api/invoice/export";
+
+/**
+ * External API endpoints
+ */
+export const CURRENCIES_API =
+  "https://openexchangerates.org/api/currencies.json";
+
+/**
+ * Local storage
+ */
+export const LOCAL_STORAGE_INVOICE_DRAFT_KEY = "invoify:invoiceDraft";
+export const LOCAL_STORAGE_DOWNLOAD_DIRECTORY_KEY = "invoify:downloadDirectory";
+export const LOCAL_STORAGE_SAVED_PAYMENT_INFO_KEY = "invoify:savedPaymentInfo";
+export const LOCAL_STORAGE_LAST_INVOICE_NUMBER_KEY = "invoify:lastInvoiceNumber";
+
+/**
+ * Tailwind
+ */
+export const TAILWIND_CDN =
+  "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css";
+
+/**
+ * Google
+ */
+export const GOOGLE_SC_VERIFICATION = process.env.GOOGLE_SC_VERIFICATION;
+
+/**
+ * Nodemailer
+ */
+export const NODEMAILER_EMAIL = process.env.NODEMAILER_EMAIL;
+export const NODEMAILER_PW = process.env.NODEMAILER_PW;
+
+/**
+ * I18N
+ */
+export const LOCALES = [
+  { code: "en", name: "English" },
+  { code: "de", name: "Deutsch" },
+  { code: "it", name: "Italiano" },
+  { code: "es", name: "Español" },
+  { code: "ca", name: "Català" },
+  { code: "fr", name: "Français" },
+  { code: "ar", name: "العربية" },
+  { code: "pl", name: "Polish" },
+  { code: "pt-BR", name: "Português (Brasil)" },
+  { code: "tr", name: "Türkçe" },
+  { code: "zh-CN", name: "简体中文" },
+  { code: "ja", name: "日本語" },
+  { code: "nb-NO", name: "Norwegian (bokmål)" },
+  { code: "nn-NO", name: "Norwegian (nynorsk)" },
+];
+export const DEFAULT_LOCALE = LOCALES[0].code;
+
+/**
+ * Signature variables
+ */
+export const SIGNATURE_COLORS: SignatureColor[] = [
+  { name: "black", label: "Black", color: "rgb(0, 0, 0)" },
+  { name: "dark blue", label: "Dark Blue", color: "rgb(0, 0, 128)" },
+  {
+    name: "crimson",
+    label: "Crimson",
+    color: "#DC143C",
+  },
+];
+
+export const SIGNATURE_FONTS: SignatureFont[] = [
+  {
+    name: "Dancing Script",
+    variable: "var(--font-dancing-script)",
+  },
+  { name: "Parisienne", variable: "var(--font-parisienne)" },
+  {
+    name: "Great Vibes",
+    variable: "var(--font-great-vibes)",
+  },
+  {
+    name: "Alex Brush",
+    variable: "var(--font-alex-brush)",
+  },
+];
+
+/**
+ * Form date options
+ */
+export const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+};
+
+export const SHORT_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+};
+
+/**
+ * Form defaults
+ */
+export const FORM_DEFAULT_VALUES = {
+  sender: {
+    name: "",
+    city: "",
+    country: "",
+    email: "",
+    phone: [""],
+    customInputs: [],
+  },
+  receiver: {
+    name: "",
+    city: "",
+    country: "",
+    email: "",
+    phone: [""],
+    customInputs: [],
+  },
+  details: {
+    invoiceLogo: "",
+    invoiceNumber: "",
+    invoiceDate: "",
+    numberOfPassengers: 1,
+    items: [
+      {
+        name: "",
+        description: "",
+        quantity: 0,
+        unitPrice: 0,
+        total: 0,
+        passengerName: "",
+        serviceType: "",
+      },
+    ],
+    currency: "USD",
+    language: "English",
+    taxDetails: {
+      amount: 0,
+      amountType: "amount",
+      taxID: "",
+    },
+    discountDetails: {
+      amount: 0,
+      amountType: "amount",
+    },
+    shippingDetails: {
+      cost: 0,
+      costType: "amount",
+    },
+    paymentInformation: {
+      bankName: "",
+      accountName: "",
+      accountNumber: "",
+      iban: "",
+      swiftCode: "",
+    },
+    additionalNotes: "",
+    paymentTerms: "",
+    totalAmountInWords: "",
+    pdfTemplate: 3,
+    showVat: false,
+    showPassengerName: true,
+    showRoute: true,
+    showAirlines: true,
+    showServiceType: true,
+    showAmount: true,
+    signature: {
+      data: "",
+    },
+  },
+};
+
+/**
+ * ? DEV Only
+ * Form auto fill values for testing
+ */
+export const FORM_FILL_VALUES = {
+  sender: {
+    name: "John Doe",
+    city: "Anytown",
+    country: "USA",
+    email: "johndoe@example.com",
+    phone: ["123-456-7890"],
+  },
+  receiver: {
+    name: "Jane Smith",
+    city: "Other Town",
+    country: "Canada",
+    email: "janesmith@example.com",
+    phone: ["987-654-3210"],
+  },
+  details: {
+    invoiceLogo: "",
+    invoiceNumber: "INV0001",
+    invoiceDate: new Date(),
+    dueDate: new Date(),
+    items: [
+      {
+        name: "Product 1",
+        description: "Description of Product 1",
+        quantity: 4,
+        unitPrice: 50,
+        total: 200,
+      },
+      {
+        name: "Product 2",
+        description: "Description of Product 2",
+        quantity: 5,
+        unitPrice: 50,
+        total: 250,
+      },
+      {
+        name: "Product 3",
+        description: "Description of Product 3",
+        quantity: 5,
+        unitPrice: 80,
+        total: 400,
+      },
+    ],
+    currency: "USD",
+    language: "English",
+    taxDetails: {
+      amount: 15,
+      amountType: "percentage",
+      taxID: "987654321",
+    },
+    discountDetails: {
+      amount: 5,
+      amountType: "percentage",
+    },
+    shippingDetails: {
+      cost: 5,
+      costType: "percentage",
+    },
+    paymentInformation: {
+      bankName: "Bank Inc.",
+      accountName: "John Doe",
+      accountNumber: "445566998877",
+      iban: "",
+      swiftCode: "",
+    },
+    additionalNotes: "Thank you for your business",
+    paymentTerms: "Net 30",
+    signature: {
+      data: "",
+    },
+    subTotal: "850",
+    totalAmount: "850",
+    totalAmountInWords: "Eight Hundred Fifty",
+    pdfTemplate: 3,
+  },
+};
