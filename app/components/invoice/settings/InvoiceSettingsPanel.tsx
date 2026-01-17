@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useFormContext } from "react-hook-form";
-import { X } from "lucide-react";
+import Link from "next/link";
+import { X, HardDrive } from "lucide-react";
 
 // ShadCn
 import { Label } from "@/components/ui/label";
@@ -95,6 +96,21 @@ const InvoiceSettingsPanel = ({ isOpen, onClose }: InvoiceSettingsPanelProps) =>
                         >
                             <X className="h-5 w-5" />
                         </BaseButton>
+                    </div>
+
+                    {/* Navigation Section */}
+                    <div className="space-y-2 p-4 border rounded-lg bg-gray-50 dark:bg-slate-800">
+                        <Label className="font-semibold text-lg">Navigation</Label>
+                        <Link href="/backups" onClick={onClose}>
+                            <BaseButton
+                                type="button"
+                                variant="outline"
+                                className="w-full justify-start"
+                            >
+                                <HardDrive className="w-4 h-4 mr-2" />
+                                Backups
+                            </BaseButton>
+                        </Link>
                     </div>
 
                     {/* Column Visibility Section */}
