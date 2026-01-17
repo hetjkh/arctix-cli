@@ -1,3 +1,7 @@
+// Configure execution timeout (Vercel Pro: 60s, Enterprise: 300s)
+export const runtime = "nodejs";
+export const maxDuration = 300; // 5 minutes maximum
+
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
@@ -8,8 +12,26 @@ import archiver from "archiver";
 import { generatePdfService } from "@/services/invoice/server/generatePdfService";
 
 /**
+ * Process invoices in batches to avoid memory issues
+ */
+async function processBatch<T>(
+    items: T[],
+    batchSize: number,
+    processor: (item: T) => Promise<any>
+): Promise<any[]> {
+    const results: any[] = [];
+    for (let i = 0; i < items.length; i += batchSize) {
+        const batch = items.slice(i, i + batchSize);
+        const batchResults = await Promise.all(batch.map(processor));
+        results.push(...batchResults);
+    }
+    return results;
+}
+
+/**
  * GET /api/backup/pdf-zip
  * Generate PDFs for all invoices and download them as a zip file
+ * Optimized with batching for large invoice counts (100+)
  */
 export async function GET(req: NextRequest) {
     try {
@@ -37,9 +59,31 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        const totalInvoices = invoices.length;
+        console.log(`Starting PDF generation for ${totalInvoices} invoices`);
+
+        // Estimate time: ~3 seconds per PDF (Puppeteer browser launch + PDF generation)
+        // With batching of 10, we process ~10 PDFs in parallel, taking ~5-8 seconds per batch
+        const batchSize = 10; // Process 10 PDFs at a time to balance speed and memory
+        const estimatedSeconds = Math.ceil((totalInvoices / batchSize) * 6);
+        const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
+        
+        console.log(`Estimated time: ~${estimatedMinutes} minute(s) for ${totalInvoices} invoices`);
+
+        // Warn if processing too many (may timeout)
+        if (totalInvoices > 200) {
+            return NextResponse.json(
+                { 
+                    error: `Too many invoices (${totalInvoices}). Maximum 200 invoices supported per batch. Please contact support for bulk exports.`,
+                    invoiceCount: totalInvoices
+                },
+                { status: 400 }
+            );
+        }
+
         // Create a zip archive
         const archive = archiver("zip", {
-            zlib: { level: 9 }, // Maximum compression
+            zlib: { level: 5 }, // Balanced compression (level 9 is too slow for large files)
         });
 
         // Collect chunks for the zip file
@@ -53,8 +97,8 @@ export async function GET(req: NextRequest) {
             console.error("Archive error:", err);
         });
 
-        // Generate PDFs for all invoices
-        const pdfPromises = invoices.map(async (invoice) => {
+        // Process PDF generation in batches to avoid memory issues
+        const pdfProcessor = async (invoice: InvoiceDocument) => {
             try {
                 // Remove MongoDB-specific fields
                 const { _id, userId, createdAt, updatedAt, ...invoiceData } = invoice;
@@ -89,10 +133,11 @@ export async function GET(req: NextRequest) {
                 console.error(`Error processing invoice ${invoice._id}:`, error);
                 return null;
             }
-        });
+        };
 
-        // Wait for all PDFs to be generated
-        const pdfResults = await Promise.all(pdfPromises);
+        // Process invoices in batches
+        console.log(`Processing ${totalInvoices} invoices in batches of ${batchSize}...`);
+        const pdfResults = await processBatch(invoices, batchSize, pdfProcessor);
 
         // Add all PDFs to the archive
         let addedCount = 0;

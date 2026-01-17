@@ -80,6 +80,7 @@ const BackupList = () => {
     const [showProgressDialog, setShowProgressDialog] = useState(false);
     const [progress, setProgress] = useState(0);
     const [progressMessage, setProgressMessage] = useState("Preparing to generate PDFs...");
+    const [restoring, setRestoring] = useState(false);
 
     useEffect(() => {
         fetchBackups();
@@ -209,22 +210,35 @@ const BackupList = () => {
     };
 
     const handleRestore = async () => {
-        if (!restoringId) return;
+        if (!restoringId) {
+            console.error("handleRestore called but restoringId is null");
+            return;
+        }
+
+        setRestoring(true);
+        console.log("Starting restore process", { filename: restoringId, mode: restoreMode });
 
         try {
+            const requestBody = {
+                filename: restoringId,
+                mode: restoreMode,
+            };
+            
+            console.log("Sending restore request:", requestBody);
+
             const response = await fetch("/api/backup/restore", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({
-                    filename: restoringId,
-                    mode: restoreMode,
-                }),
+                body: JSON.stringify(requestBody),
             });
+
+            console.log("Restore response status:", response.status);
 
             if (response.ok) {
                 const data = await response.json();
+                console.log("Restore successful:", data);
                 toast({
                     title: "Success",
                     description: `Backup restored successfully. Restored: ${JSON.stringify(data.result.restored)}`,
@@ -236,7 +250,14 @@ const BackupList = () => {
                     router.refresh();
                 }, 1000);
             } else {
-                const error = await response.json();
+                const errorText = await response.text();
+                console.error("Restore error response:", errorText);
+                let error;
+                try {
+                    error = JSON.parse(errorText);
+                } catch {
+                    error = { error: errorText || "Failed to restore backup" };
+                }
                 toast({
                     variant: "destructive",
                     title: "Error",
@@ -248,10 +269,10 @@ const BackupList = () => {
             toast({
                 variant: "destructive",
                 title: "Error",
-                description: "Failed to restore backup",
+                description: error instanceof Error ? error.message : "Failed to restore backup",
             });
         } finally {
-            setRestoringId(null);
+            setRestoring(false);
         }
     };
 
@@ -294,10 +315,32 @@ const BackupList = () => {
             // First, get the count of invoices to estimate time
             const countResponse = await fetch("/api/invoice/list");
             let totalInvoices = 0;
+            let estimatedTime = "";
             if (countResponse.ok) {
                 const countData = await countResponse.json();
                 totalInvoices = countData.invoices?.length || 0;
-                setProgressMessage(`Found ${totalInvoices} invoices. Generating PDFs...`);
+                
+                // Calculate estimated time: ~6 seconds per batch of 10 invoices
+                const batchSize = 10;
+                const batches = Math.ceil(totalInvoices / batchSize);
+                const estimatedSeconds = batches * 6; // ~6 seconds per batch
+                const estimatedMinutes = Math.ceil(estimatedSeconds / 60);
+                
+                if (estimatedMinutes <= 1) {
+                    estimatedTime = "~30-60 seconds";
+                } else if (estimatedMinutes <= 5) {
+                    estimatedTime = `~${estimatedMinutes} minute(s)`;
+                } else {
+                    estimatedTime = `~${estimatedMinutes}-${estimatedMinutes + 2} minutes`;
+                }
+                
+                if (totalInvoices > 100) {
+                    setProgressMessage(
+                        `Found ${totalInvoices} invoices. Generating PDFs... Estimated time: ${estimatedTime}. This may take a while.`
+                    );
+                } else {
+                    setProgressMessage(`Found ${totalInvoices} invoices. Generating PDFs... Estimated time: ${estimatedTime}`);
+                }
             }
 
             // Update progress message during generation
@@ -445,31 +488,45 @@ const BackupList = () => {
                                             </div>
                                         </CardDescription>
                                     </div>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                                         <BaseButton
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => handleDownload(backup.filename)}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleDownload(backup.filename);
+                                            }}
                                             tooltipLabel="Download backup"
+                                            type="button"
                                         >
                                             <Download className="w-4 h-4" />
                                         </BaseButton>
                                         <BaseButton
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                console.log("Restore button clicked", backup.filename);
                                                 setRestoringId(backup.filename);
                                                 setShowRestoreDialog(true);
                                             }}
                                             tooltipLabel="Restore from backup"
+                                            type="button"
                                         >
                                             <RotateCcw className="w-4 h-4" />
                                         </BaseButton>
                                         <BaseButton
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setDeletingId(backup.filename)}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setDeletingId(backup.filename);
+                                            }}
                                             tooltipLabel="Delete backup"
+                                            type="button"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </BaseButton>
@@ -525,8 +582,16 @@ const BackupList = () => {
             </AlertDialog>
 
             {/* Restore Dialog */}
-            <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
-                <DialogContent>
+            <Dialog 
+                open={showRestoreDialog} 
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setShowRestoreDialog(false);
+                        setRestoringId(null);
+                    }
+                }}
+            >
+                <DialogContent className="z-[100]" onPointerDownOutside={(e) => e.preventDefault()}>
                     <DialogHeader>
                         <DialogTitle>Restore Backup</DialogTitle>
                         <DialogDescription>
@@ -537,7 +602,7 @@ const BackupList = () => {
                         <div className="space-y-2">
                             <label className="text-sm font-medium">Restore Mode</label>
                             <select
-                                className="w-full p-2 border rounded-md"
+                                className="w-full p-2 border rounded-md dark:bg-slate-800 dark:text-white"
                                 value={restoreMode}
                                 onChange={(e) => setRestoreMode(e.target.value as "merge" | "replace")}
                             >
@@ -557,12 +622,52 @@ const BackupList = () => {
                             </div>
                         )}
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setShowRestoreDialog(false)}>
+                    <DialogFooter className="gap-2">
+                        <Button 
+                            type="button"
+                            variant="outline" 
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setShowRestoreDialog(false);
+                                setRestoringId(null);
+                            }}
+                            disabled={restoring}
+                        >
                             Cancel
                         </Button>
-                        <Button onClick={handleRestore} variant={restoreMode === "replace" ? "destructive" : "default"}>
-                            Restore Backup
+                        <Button 
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log("Restore Backup button clicked", { 
+                                    restoringId, 
+                                    restoreMode, 
+                                    restoring,
+                                    timestamp: new Date().toISOString()
+                                });
+                                if (!restoringId) {
+                                    console.error("No restoringId set");
+                                    toast({
+                                        variant: "destructive",
+                                        title: "Error",
+                                        description: "No backup selected",
+                                    });
+                                    return;
+                                }
+                                if (restoring) {
+                                    console.log("Already restoring, ignoring click");
+                                    return;
+                                }
+                                handleRestore();
+                            }} 
+                            variant={restoreMode === "replace" ? "destructive" : "default"}
+                            disabled={!restoringId || restoring}
+                            className="min-w-[120px] relative z-10"
+                            style={{ pointerEvents: restoring ? "none" : "auto" }}
+                        >
+                            {restoring ? "Restoring..." : "Restore Backup"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
