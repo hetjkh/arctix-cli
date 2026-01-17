@@ -1,4 +1,4 @@
-import { ObjectId } from "mongodb";
+import { ObjectId, Db } from "mongodb";
 import { getDb } from "@/lib/db";
 import { BackupData, ObjectIdMapper } from "./backupService";
 import { Client } from "@/models/Client";
@@ -143,7 +143,7 @@ export async function restoreUserData(
  * Restore clients and return email to ObjectId mapping
  */
 async function restoreClients(
-    db: any,
+    db: Db,
     clients: Client[],
     targetUserId: ObjectId,
     mode: RestoreMode,
@@ -201,7 +201,7 @@ async function restoreClients(
  * Restore invoices
  */
 async function restoreInvoices(
-    db: any,
+    db: Db,
     invoices: InvoiceDocument[],
     targetUserId: ObjectId,
     mode: RestoreMode,
@@ -252,7 +252,7 @@ async function restoreInvoices(
  * Restore statements
  */
 async function restoreStatements(
-    db: any,
+    db: Db,
     statements: StatementDocument[],
     targetUserId: ObjectId,
     mode: RestoreMode,
@@ -295,7 +295,7 @@ async function restoreStatements(
  * Restore documents
  */
 async function restoreDocuments(
-    db: any,
+    db: Db,
     documents: Document[],
     targetUserId: ObjectId,
     mode: RestoreMode,
@@ -335,7 +335,7 @@ async function restoreDocuments(
  * Restore preferences
  */
 async function restorePreferences(
-    db: any,
+    db: Db,
     preferences: UserPreferences | null,
     targetUserId: ObjectId,
     mode: RestoreMode,
@@ -378,7 +378,7 @@ async function restorePreferences(
  * Restore defaults
  */
 async function restoreDefaults(
-    db: any,
+    db: Db,
     defaults: UserDefaults[],
     targetUserId: ObjectId,
     mode: RestoreMode,
