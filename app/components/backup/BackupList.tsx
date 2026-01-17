@@ -46,6 +46,7 @@ import {
     Calendar,
     FileArchive,
     Database,
+    FileDown,
 } from "lucide-react";
 
 interface BackupMetadata {
@@ -75,6 +76,7 @@ const BackupList = () => {
     const [restoringId, setRestoringId] = useState<string | null>(null);
     const [restoreMode, setRestoreMode] = useState<"merge" | "replace">("merge");
     const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+    const [downloadingPdfZip, setDownloadingPdfZip] = useState(false);
 
     useEffect(() => {
         fetchBackups();
@@ -271,6 +273,43 @@ const BackupList = () => {
         );
     };
 
+    const handleDownloadAllPdfs = async () => {
+        setDownloadingPdfZip(true);
+        try {
+            const response = await fetch("/api/backup/pdf-zip");
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `invoices-${new Date().toISOString().slice(0, 10)}.zip`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+                toast({
+                    title: "Success",
+                    description: "All invoice PDFs downloaded as ZIP file",
+                });
+            } else {
+                const error = await response.json();
+                toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: error.error || "Failed to download invoice PDFs",
+                });
+            }
+        } catch (error) {
+            console.error("Error downloading PDF zip:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to download invoice PDFs",
+            });
+        } finally {
+            setDownloadingPdfZip(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center p-8">
@@ -289,14 +328,25 @@ const BackupList = () => {
                         Create, download, or restore your data backups
                     </p>
                 </div>
-                <BaseButton
-                    onClick={handleCreateBackup}
-                    disabled={creating}
-                    tooltipLabel="Create new backup"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    {creating ? "Creating..." : "Create Backup"}
-                </BaseButton>
+                <div className="flex gap-2">
+                    <BaseButton
+                        onClick={handleDownloadAllPdfs}
+                        disabled={downloadingPdfZip}
+                        variant="outline"
+                        tooltipLabel="Download all invoice PDFs as ZIP"
+                    >
+                        <FileDown className="w-4 h-4 mr-2" />
+                        {downloadingPdfZip ? "Generating..." : "Download All PDFs"}
+                    </BaseButton>
+                    <BaseButton
+                        onClick={handleCreateBackup}
+                        disabled={creating}
+                        tooltipLabel="Create new backup"
+                    >
+                        <Plus className="w-4 h-4 mr-2" />
+                        {creating ? "Creating..." : "Create Backup"}
+                    </BaseButton>
+                </div>
             </div>
 
             {/* Backups List */}
