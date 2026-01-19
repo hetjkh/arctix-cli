@@ -186,7 +186,26 @@ const DocumentVersionHistory = ({ documentId }: DocumentVersionHistoryProps) => 
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => window.open(version.fileUrl, "_blank")}
+                                            onClick={async () => {
+                                                try {
+                                                    const response = await fetch(`/api/document/${version.id}/download`);
+                                                    if (response.ok) {
+                                                        const blob = await response.blob();
+                                                        const url = window.URL.createObjectURL(blob);
+                                                        const a = document.createElement("a");
+                                                        a.href = url;
+                                                        a.download = version.fileName;
+                                                        document.body.appendChild(a);
+                                                        a.click();
+                                                        window.URL.revokeObjectURL(url);
+                                                        document.body.removeChild(a);
+                                                    } else {
+                                                        console.error("Failed to download document");
+                                                    }
+                                                } catch (error) {
+                                                    console.error("Error downloading document:", error);
+                                                }
+                                            }}
                                         >
                                             <Download className="w-4 h-4" />
                                         </Button>
