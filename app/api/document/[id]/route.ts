@@ -39,13 +39,18 @@ export async function GET(
         let versions: any[] = [];
         if (document.parentDocumentId || document.version > 1) {
             const parentId = document.parentDocumentId || document._id;
+            // Ensure userId is properly included in the query
             const versionDocs = await documentsCollection
                 .find({
-                    $or: [
-                        { _id: parentId },
-                        { parentDocumentId: parentId },
+                    $and: [
+                        {
+                            $or: [
+                                { _id: parentId },
+                                { parentDocumentId: parentId },
+                            ],
+                        },
+                        { userId: new ObjectId(user.userId) },
                     ],
-                    userId: new ObjectId(user.userId),
                 })
                 .sort({ version: -1 })
                 .toArray();
@@ -123,8 +128,11 @@ export async function DELETE(
             await deleteFromCloudinary(document.publicId);
         }
 
-        // Delete from database
-        await documentsCollection.deleteOne({ _id: new ObjectId(id) });
+        // Delete from database - include userId for security
+        await documentsCollection.deleteOne({ 
+            _id: new ObjectId(id),
+            userId: new ObjectId(user.userId),
+        });
 
         return NextResponse.json(
             { message: "Document deleted successfully" },

@@ -24,31 +24,41 @@ export async function GET(req: NextRequest) {
         const db = await getDb();
         const documentsCollection = db.collection<Document>("documents");
 
-        // Build query
-        const query: any = {
+        // Build query - ALWAYS filter by userId first
+        const baseQuery: any = {
             userId: new ObjectId(user.userId),
         };
 
         if (invoiceId) {
-            query.invoiceId = new ObjectId(invoiceId);
+            baseQuery.invoiceId = new ObjectId(invoiceId);
         }
 
         if (category) {
-            query.category = category;
-        }
-
-        if (search) {
-            query.$or = [
-                { name: { $regex: search, $options: "i" } },
-                { fileName: { $regex: search, $options: "i" } },
-                { description: { $regex: search, $options: "i" } },
-                { tags: { $in: [new RegExp(search, "i")] } },
-            ];
+            baseQuery.category = category;
         }
 
         // If not including versions, only get current versions
         if (!includeVersions) {
-            query.isCurrentVersion = true;
+            baseQuery.isCurrentVersion = true;
+        }
+
+        // Build final query with search if needed
+        let query: any = baseQuery;
+        if (search) {
+            // Use $and to ensure userId is always enforced
+            query = {
+                $and: [
+                    baseQuery,
+                    {
+                        $or: [
+                            { name: { $regex: search, $options: "i" } },
+                            { fileName: { $regex: search, $options: "i" } },
+                            { description: { $regex: search, $options: "i" } },
+                            { tags: { $in: [new RegExp(search, "i")] } },
+                        ],
+                    },
+                ],
+            };
         }
 
         const documents = await documentsCollection

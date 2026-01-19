@@ -93,6 +93,21 @@ export async function initializeIndexes(): Promise<void> {
             unique: true // Email should be unique
         });
         
+        // Initialize indexes for documents collection
+        const documentsCollection = db.collection("documents");
+        
+        // Index on userId - critical for security and performance
+        await documentsCollection.createIndex({ userId: 1 }, { background: true });
+        
+        // Compound index on userId and invoiceId
+        await documentsCollection.createIndex({ userId: 1, invoiceId: 1 }, { background: true });
+        
+        // Compound index on userId and isCurrentVersion
+        await documentsCollection.createIndex({ userId: 1, isCurrentVersion: 1 }, { background: true });
+        
+        // Index on userId and parentDocumentId for version queries
+        await documentsCollection.createIndex({ userId: 1, parentDocumentId: 1 }, { background: true });
+        
         console.log("Database indexes initialized successfully");
     } catch (error) {
         console.error("Error initializing database indexes:", error);

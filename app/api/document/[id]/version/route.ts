@@ -76,11 +76,15 @@ export async function POST(
         // Mark all previous versions as not current
         await documentsCollection.updateMany(
             {
-                $or: [
-                    { _id: parentDocumentId },
-                    { parentDocumentId: parentDocumentId },
+                $and: [
+                    {
+                        $or: [
+                            { _id: parentDocumentId },
+                            { parentDocumentId: parentDocumentId },
+                        ],
+                    },
+                    { userId: new ObjectId(user.userId) },
                 ],
-                userId: new ObjectId(user.userId),
             },
             { $set: { isCurrentVersion: false } }
         );
@@ -88,11 +92,15 @@ export async function POST(
         // Get next version number
         const versionDocs = await documentsCollection
             .find({
-                $or: [
-                    { _id: parentDocumentId },
-                    { parentDocumentId: parentDocumentId },
+                $and: [
+                    {
+                        $or: [
+                            { _id: parentDocumentId },
+                            { parentDocumentId: parentDocumentId },
+                        ],
+                    },
+                    { userId: new ObjectId(user.userId) },
                 ],
-                userId: new ObjectId(user.userId),
             })
             .sort({ version: -1 })
             .limit(1)
