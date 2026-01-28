@@ -18,7 +18,8 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
     const hasSignature = details.signature?.data;
 
     // If no payment info and no receiver section, only show signature if it exists
-    if (!hasPaymentInfo && !showReceiverSection && hasSignature) {
+    if (!hasPaymentInfo && !showReceiverSection && hasSignature && details.signature) {
+        const signature = details.signature;
         return (
             <div className="mt-8 border-t border-gray-300 pt-6">
                 <div className="flex justify-end">
@@ -26,9 +27,9 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
                         <p className="text-sm font-semibold text-gray-700 uppercase tracking-widest mb-2">
                             Authorized Signature
                         </p>
-                        {isImageUrl(details.signature.data) ? (
+                        {isImageUrl(signature.data) ? (
                             <img
-                                src={details.signature.data}
+                                src={signature.data}
                                 width={140}
                                 height={70}
                                 alt={`Signature of ${sender.name}`}
@@ -40,12 +41,12 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
                                     style={{
                                         fontSize: 28,
                                         fontWeight: 400,
-                                        fontFamily: `${details.signature.fontFamily || "Dancing Script"}, cursive`,
+                                        fontFamily: `${signature.fontFamily || "Dancing Script"}, cursive`,
                                         margin: 0,
                                         textAlign: "center",
                                     }}
                                 >
-                                    {details.signature.data}
+                                    {signature.data}
                                 </p>
                             </div>
                         )}
@@ -62,7 +63,7 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
             <div className="mt-8 border-t border-gray-300 pt-6">
                 <div className="flex justify-between items-start gap-8">
                     <ReceiverSignatureSection data={data} />
-                    {hasSignature && (
+                    {hasSignature && details.signature && (
                         <div className="text-right">
                             <p className="text-sm font-semibold text-gray-700 uppercase tracking-widest mb-2">
                                 Authorized Signature
@@ -150,7 +151,7 @@ const PaymentInstructionsSection = ({ data }: PaymentInstructionsSectionProps) =
                         ) : (
                             <div></div>
                         )}
-                        {hasSignature && (
+                        {hasSignature && details.signature && (
                             <div className="text-right">
                                 <p className="text-sm font-semibold text-gray-700 uppercase tracking-widest mb-2">
                                     Authorized Signature
