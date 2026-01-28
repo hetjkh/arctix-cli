@@ -1,5 +1,12 @@
 "use client";
 
+// RHF
+import { useFormContext } from "react-hook-form";
+
+// ShadCn
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+
 // Components
 import {
     Charges,
@@ -13,8 +20,13 @@ import DocumentsSection from "./DocumentsSection";
 import { useTranslationContext } from "@/contexts/TranslationContext";
 import { SignatureContextProvider } from "@/contexts/SignatureContext";
 
+// Types
+import { InvoiceType } from "@/types";
+
 const InvoiceSummary = () => {
     const { _t } = useTranslationContext();
+    const { watch, setValue } = useFormContext<InvoiceType>();
+    const showReceiverSignatureSection = watch("details.showReceiverSignatureSection") ?? false;
 
     return (
         <section>
@@ -37,6 +49,23 @@ const InvoiceSummary = () => {
                         label={_t("form.steps.summary.paymentTerms")}
                         placeholder="Ex: Net 30"
                     />
+
+                    {/* Receiver Signature Section Toggle */}
+                    <div className="flex items-center gap-3 pt-2">
+                        <Switch
+                            id="showReceiverSignatureSection"
+                            checked={showReceiverSignatureSection}
+                            onCheckedChange={(checked) => {
+                                setValue("details.showReceiverSignatureSection", checked);
+                            }}
+                        />
+                        <Label 
+                            htmlFor="showReceiverSignatureSection" 
+                            className="text-sm font-medium cursor-pointer"
+                        >
+                            {_t("form.steps.summary.showReceiverSignatureSection")}
+                        </Label>
+                    </div>
                 </div>
 
                 {/* Final charges */}

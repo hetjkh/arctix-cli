@@ -74,7 +74,8 @@
                 "totalAmount": "Total Amount",
                 "includeTotalInWords": "Include Total in Words?",
                 "yes": "Yes",
-                "no": "No"
+                "no": "No",
+                "showReceiverSignatureSection": "Show Receiver Signature Section"
             }
         }
     },

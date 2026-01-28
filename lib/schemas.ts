@@ -221,6 +221,7 @@ const InvoiceDetailsSchema = z.object({
         vatPercentage: z.boolean().optional(),
         vat: z.boolean().optional(),
     }).optional(),
+    showReceiverSignatureSection: z.boolean().optional(),
 });
 
 const InvoiceSchema = z.object({
